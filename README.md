@@ -9,6 +9,8 @@ However we need to be more precise, because that branch name is conflating two d
 - The TARGET of pull requests, against which upcoming changes are tested and will merge
 - The BASE branch developers rebase onto or clone in a fresh checkout of the project.
 
+Our goal is for the BASE branch to be green, so engineers don't accidentally base their work on broken tests.
+
 ## Pre-merge queues
 
 This is a retronym, because every merge queue out there (Aviator.co, Trunk.io, GitHub) is a pre-merge queue.
@@ -56,8 +58,6 @@ In this case the queue is more sophisticated because we stop conflating the TARG
 
 For clarity let's refer to these two branches as `edge` and `stable`.
 
-> Note that you could still use the name `main` for either branch - in practice it's easier to have the BASE branch be `main` because developers are so accustomed to typing `git fetch; git rebase origin/main`. The *default* branch is the one pull requests are opened against, so it's tempting to use that as the TARGET branch - but you must also account for fresh checkouts of the repo.
-
 > Also note that these really only need to be "refs" in git terminology, because stable should be purely a fast-forward of the history of `edge`
 
 The sequence now is:
@@ -72,6 +72,7 @@ The sequence now is:
 
 ```mermaid
 gitGraph
+  branch stable
   commit id:"stable (LKG)"
   branch edge
   checkout edge
@@ -83,9 +84,15 @@ gitGraph
   merge feature/pr-456
 
   commit id:"post-merge CI on edge"
-  checkout main
+  checkout stable
   merge edge id:"fast-forward stable -> edge (new LKG)"
 ```
+
+Note that you could still use the name `main` for either branch
+- Because developers are so accustomed to typing `git fetch; git rebase origin/main`, in practice it's easier to have the stable branch be `main`.
+- The *default* branch (which GitHub allows you to switch at-will) is the one pull requests are opened against, so it's convenient to make `edge` the default branch
+- *but* you must also account for fresh checkouts of the repo, which also use the default branch.
+
 
 ## Build-cop
 

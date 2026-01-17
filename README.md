@@ -67,31 +67,43 @@ The sequence now is:
 1. The developer doesn't have to monitor anything and is free to context-switch.
 1. In the uncommon case that they need to tell a co-worker "okay I merged, now you're unblocked and can rebase to pick up my change", that co-worker has to be aware of the `edge` branch. But otherwise, it's an implementation detail.
 1. The post-merge CI system runs as usual
-1. In the common case that `edge` is green, we run the normal CD (continuous delivery) steps of shipping artifacts. We simply add one more of these: the `stable` branch (ref) is fast-forwarded to the new "Last Known Good" state.
+1. In the common case that `edge` is green, we run the normal CD (continuous delivery) steps of shipping artifacts. We simply add one more of these: the `stable` branch (ref) is fast-forwarded to the new "Last Known Good" state represented by the `edge` HEAD.
 1. The delta between the timestamp of the HEAD commit on `edge` and `stable` represents the slowness of changes being vetted, and this is the limiting factor for essential KPIs like "time to delivery" which is important during production outages. Therefore the DevX team monitors this delta.
 
 ```mermaid
 gitGraph
-  commit id:"stable==edge (LKG)"
+  commit id:"stable (LKG)"
   branch edge
   checkout edge
+
   branch feature/pr-456
   checkout feature/pr-456
   commit id:"dev change (PR)"
   checkout edge
-  merge feature/pr-456 id:"merge directly to edge"
+  merge feature/pr-456
+
   commit id:"post-merge CI on edge"
-  branch stable
-  checkout stable
+  checkout main
   merge edge id:"fast-forward stable -> edge (new LKG)"
 ```
 
 ## Build-cop
 
-If `edge` goes red, an on-call is paged (they're often called the "Build Cop").
+There is a trade-off of course, because sometimes `edge` goes red. In this case an on-call is paged (they're often called the "Build Cop").
 Yes, this is another rotation, which is a cost of this approach.
 
 > Note that even with a pre-merge queue, tests that have environmental dependencies can still cause `main` to go red, so in practice this role exists anyway.
 
-95% of the time, the culprit is clearly the commit that caused the green->red transition, and the on-call reverts that commit. They immediately push to the `edge` branch without review or consulting others. This is important because other changes are also merging to `edge` and we want to avoid a complex culprit-finding situation where it's unclear how to get back to green - so the SLA for responding is a function of the QPS of commits landing.
+95% of the time, the culprit is clearly the commit that caused the green->red transition, and the on-call reverts that commit. They immediately push to the `edge` branch without review or consulting others.
 
+The speed is important because other changes are also merging to `edge` and we want to avoid a complex culprit-finding situation where it's unclear how to get back to green - so the SLA for responding is a function of the QPS of commits landing.
+
+Other than that SLA, this rotation is pretty easy, especially if you provide a simple "revert" button, or even wire it so they can confirm directly from the notification-of-red and say "yes, revert".
+
+> Google had an auto-revert bot for this case. Especially in the age of AI it's easy to pattern match that you're indeed reverting the right commit.
+
+## Cultural change
+
+Engineers aren't used to having someone revert their change without asking them, especially in a monorepo where you don't even know the Build Cop who did the revert.
+
+When this happens, the engineer is basically given an experience similar to a pre-merge queue rejecting their change. But again, it's uncommon, and the remediation is the same (adapt your change to account for commits that landed on `edge` before you and submit to the queue again).

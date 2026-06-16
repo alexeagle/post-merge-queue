@@ -1,6 +1,7 @@
 # The post-merge queue pattern
 
-This repository is both documentation and a functional example of a developer productivity pattern.
+This repository is documentation of a developer productivity pattern.
+In the future it might also host a functional example.
 
 The goal of a merge queue is to prevent red `main`.
 

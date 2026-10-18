@@ -3,7 +3,7 @@
 This repository is documentation of a developer productivity pattern.
 In the future it might also host a functional example.
 
-The goal of a merge queue is to prevent red `main`.
+The goal of a merge queue is to prevent red `main` or `master`.
 
 However we need to be more precise, because that branch name is conflating two different things:
 
